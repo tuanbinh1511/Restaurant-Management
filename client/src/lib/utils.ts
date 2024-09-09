@@ -4,6 +4,8 @@ import { clsx, type ClassValue } from "clsx";
 import { UseFormSetError } from "react-hook-form";
 import { twMerge } from "tailwind-merge";
 
+const isBrowser = typeof window !== "undefined";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -39,3 +41,8 @@ export const handleErrorApi = ({
     });
   }
 };
+
+export const getAccessTokenFromLocalStorage = () =>
+  isBrowser ? localStorage.getItem("accessToken") : null;
+export const getRefreshTokenFromLocalStorage = () =>
+  isBrowser ? localStorage.getItem("refreshToken") : null;
