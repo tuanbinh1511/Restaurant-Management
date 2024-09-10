@@ -16,9 +16,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useLoginMutation } from "@/app/queries/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { handleErrorApi } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 export default function LoginForm() {
+  const router = useRouter();
   const loginMutation = useLoginMutation();
+
   const form = useForm<LoginBodyType>({
     resolver: zodResolver(LoginBody),
     defaultValues: {
@@ -26,10 +29,12 @@ export default function LoginForm() {
       password: "",
     },
   });
+
   const onSubmit = async (data: LoginBodyType) => {
     if (loginMutation.isPending) return;
     try {
       const result = await loginMutation.mutateAsync(data);
+      router.push("/manage/dashboard");
       toast({
         description: result.payload.message,
       });
@@ -37,6 +42,7 @@ export default function LoginForm() {
       handleErrorApi({ error: error, setError: form.setError });
     }
   };
+
   return (
     <Card className="mx-auto max-w-sm">
       <CardHeader>
