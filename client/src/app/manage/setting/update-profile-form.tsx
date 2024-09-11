@@ -12,7 +12,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useUploadImageMutation } from "@/app/queries/useMedia";
+import { useUploadImageMutation } from "@/queries/useMedia";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   useAccountMeQuery,

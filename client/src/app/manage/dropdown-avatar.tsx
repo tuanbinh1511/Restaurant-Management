@@ -1,6 +1,5 @@
 "use client";
-import { useAccountMeQuery } from "@/app/queries/useAccount";
-import { useLogoutMutation } from "@/app/queries/useAuth";
+import { useLogoutMutation } from "@/queries/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +13,7 @@ import {
 import { handleErrorApi } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAccountMeQuery } from "@/queries/useAccount";
 
 export default function DropdownAvatar() {
   //define
