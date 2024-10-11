@@ -11,11 +11,11 @@ export function middleware(request: NextRequest) {
   const accessToken = request.cookies.get("accessToken")?.value;
   const refreshToken = request.cookies.get("refreshToken")?.value;
 
-  console.log(privatePaths.some((path) => pathname.startsWith(path)));
-
   //Chua login ko cho vao private paths
 
   if (privatePaths.some((path) => pathname.startsWith(path)) && !refreshToken) {
+    const url = new URL("/login", request.url);
+    url.searchParams.set("clearTokens", "true");
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -32,6 +32,8 @@ export function middleware(request: NextRequest) {
   ) {
     const url = new URL("/logout", request.url);
     url.searchParams.set("refreshToken", refreshToken ?? "");
+    url.searchParams.set("redirect", pathname);
+
     return NextResponse.redirect(url);
   }
 
