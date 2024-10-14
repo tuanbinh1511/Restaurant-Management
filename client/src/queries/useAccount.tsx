@@ -3,8 +3,6 @@ import { UpdateEmployeeAccountBodyType } from "@/schemaValidations/account.schem
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Update } from "next/dist/build/swc";
 
-const queryClient = useQueryClient();
-
 export const useAccountMeQuery = () => {
   return useQuery({
     queryKey: ["account-profile"],
@@ -26,7 +24,7 @@ export const useChangePasswordAccountMeMutation = () => {
 export const useGetAccountList = () => {
   return useQuery({
     queryKey: ["accounts"],
-    queryFn: () => accountApiRequest.list,
+    queryFn: accountApiRequest.list,
   });
 };
 
@@ -37,6 +35,8 @@ export const useGetAccount = ({ id }: { id: number }) => {
   });
 };
 export const useAddAccountMutation = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: accountApiRequest.addEmployee,
     onSuccess: () => {
@@ -48,6 +48,8 @@ export const useAddAccountMutation = () => {
 };
 
 export const useUpdateAccountMutation = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({
       id,
@@ -63,6 +65,8 @@ export const useUpdateAccountMutation = () => {
 };
 
 export const useDeleteAccountMutation = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: accountApiRequest.deleteEmployee,
     onSuccess: () => {
