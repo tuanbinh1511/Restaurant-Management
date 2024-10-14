@@ -14,12 +14,13 @@ import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUploadImageMutation } from "@/queries/useMedia";
 import { useEffect, useMemo, useRef, useState } from "react";
+
+import { toast } from "@/hooks/use-toast";
+import { handleErrorApi } from "@/lib/utils";
 import {
   useAccountMeQuery,
   useUpdateAccountMeMutation,
-} from "@/app/queries/useAccount";
-import { toast } from "@/hooks/use-toast";
-import { handleErrorApi } from "@/lib/utils";
+} from "@/queries/useAccount";
 
 export default function UpdateProfileForm() {
   //define

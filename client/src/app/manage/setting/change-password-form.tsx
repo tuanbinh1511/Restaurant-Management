@@ -11,9 +11,9 @@ import {
 } from "@/schemaValidations/account.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { useChangePasswordAccountMeMutation } from "@/app/queries/useAccount";
 import { toast } from "@/hooks/use-toast";
 import { handleErrorApi } from "@/lib/utils";
+import { useChangePasswordAccountMeMutation } from "@/queries/useAccount";
 
 export default function ChangePasswordForm() {
   const updatePasswordMutation = useChangePasswordAccountMeMutation();

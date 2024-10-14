@@ -5,21 +5,13 @@ import {
   getRefreshTokenFromLocalStorage,
 } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
-
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 export default function RefreshTokenPage() {
-  //define
-  const searchParam = useSearchParams();
-  const refreshTokenFromUrl = searchParam.get("refreshToken");
-  const accessTokenFromUrl = searchParam.get("accessToken");
-  const redirectParams = searchParam.get("redirect");
   const router = useRouter();
-
-  //state
-  const ref = useRef<any>(null);
-
-  // useEffect
+  const searchParams = useSearchParams();
+  const refreshTokenFromUrl = searchParams.get("refreshToken");
+  const redirectPathname = searchParams.get("redirect");
   useEffect(() => {
     if (
       refreshTokenFromUrl &&
@@ -27,12 +19,10 @@ export default function RefreshTokenPage() {
     ) {
       checkAndRefreshToken({
         onSuccess: () => {
-          router.push(redirectParams || "/");
+          router.push(redirectPathname || "/");
         },
       });
-    } else {
-      router.push("/");
     }
-  }, [router, refreshTokenFromUrl, accessTokenFromUrl]);
-  return <div>RefreshTokenPage</div>;
+  }, [router, refreshTokenFromUrl, redirectPathname]);
+  return <div>Refresh token....</div>;
 }

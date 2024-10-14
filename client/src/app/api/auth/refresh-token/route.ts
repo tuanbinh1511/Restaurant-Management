@@ -1,11 +1,8 @@
 import authApiRequest from "@/apiRequests/auth";
-import { LoginBodyType } from "@/schemaValidations/auth.schema";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
-import { HttpError } from "@/lib/http";
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as LoginBodyType;
   const cookieStore = cookies();
   const refreshToken = cookieStore.get("refreshToken")?.value;
   if (!refreshToken) {
@@ -19,7 +16,9 @@ export async function POST(request: Request) {
     );
   }
   try {
-    const { payload } = await authApiRequest.sRefreshToken({ refreshToken });
+    const { payload } = await authApiRequest.sRefreshToken({
+      refreshToken,
+    });
 
     const decodedAccessToken = jwt.decode(payload.data.accessToken) as {
       exp: number;
@@ -45,7 +44,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     return Response.json(
       {
-        message: error.message || "Có lỗi xảy ra",
+        message: error.message ?? "Có lỗi xảy ra",
       },
       {
         status: 401,

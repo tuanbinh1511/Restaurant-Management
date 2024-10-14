@@ -14,10 +14,11 @@ import { handleErrorApi } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAccountMeQuery } from "@/queries/useAccount";
+import { useAppContext } from "@/components/app-provider";
 
 export default function DropdownAvatar() {
   //define
-
+  const { setIsAuth } = useAppContext();
   //state
 
   const logoutMutation = useLogoutMutation();
@@ -31,6 +32,7 @@ export default function DropdownAvatar() {
     try {
       await logoutMutation.mutateAsync();
       router.push("/");
+      setIsAuth(false);
     } catch (error) {
       handleErrorApi({
         error,

@@ -59,12 +59,13 @@ export const removeTokensFromLocalStorage = () => {
   isBrowser && localStorage.removeItem("refreshToken");
 };
 
-export const checkAndRefreshToken = async (params: {
+export const checkAndRefreshToken = async (param: {
   onError?: () => void;
   onSuccess?: () => void;
 }) => {
-  const refreshToken = getRefreshTokenFromLocalStorage();
   const accessToken = getAccessTokenFromLocalStorage();
+  const refreshToken = getRefreshTokenFromLocalStorage();
+  // Chưa đăng nhập thì cũng không cho chạy
   if (!accessToken || !refreshToken) return;
   const decodedAccessToken = jwt.decode(accessToken) as {
     exp: number;
@@ -74,25 +75,27 @@ export const checkAndRefreshToken = async (params: {
     exp: number;
     iat: number;
   };
-  const now = new Date().getTime() / 1000 - 1;
-  if (decodedRefreshToken.exp <= now) {
-    // vi du access token co thoi gian het han la 10s thi minh kiem tra con 1/3 tgian la 3s thi minh cho refresh token
-    // thoi gian con lai tien tren cong thuc : decodedAccessToken.exp - now
-    // thoi gian het han cua access token tien tren cong thuc : decodedAccessToken.exp - decodedAccessToken.iat
-    return;
-  }
+  // Thời điểm hết hạn của token là tính theo epoch time (s)
+  // Còn khi các bạn dùng cú pháp new Date().getTime() thì nó sẽ trả về epoch time (ms)
+  const now = Math.round(new Date().getTime() / 1000);
+  // trường hợp refresh token hết hạn thì không xử lý nữa
+  if (decodedRefreshToken.exp <= now) return;
+  // Ví dụ access token của chúng ta có thời gian hết hạn là 10s
+  // thì mình sẽ kiểm tra còn 1/3 thời gian (3s) thì mình sẽ cho refresh token lại
+  // Thời gian còn lại sẽ tính dựa trên công thức: decodedAccessToken.exp - now
+  // Thời gian hết hạn của access token dựa trên công thức: decodedAccessToken.exp - decodedAccessToken.iat
   if (
     decodedAccessToken.exp - now <
     (decodedAccessToken.exp - decodedAccessToken.iat) / 3
   ) {
-    // goi api refresh token
+    // Gọi API refresh token
     try {
       const res = await authApiRequest.refreshToken();
       settAccessTokenToLocalStorage(res.payload.data.accessToken);
       setRefreshTokenToLocalStorage(res.payload.data.refreshToken);
-      params?.onSuccess && params.onSuccess();
+      param?.onSuccess && param.onSuccess();
     } catch (error) {
-      params?.onError && params.onError();
+      param?.onError && param.onError();
     }
   }
 };
