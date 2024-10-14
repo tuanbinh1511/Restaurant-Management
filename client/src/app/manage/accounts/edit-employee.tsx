@@ -88,14 +88,19 @@ export default function EditEmployee({
       toast({
         description: (await result).payload.message,
       });
-      form.reset();
       onSubmitSuccess && onSubmitSuccess();
+      reset();
     } catch (error) {
       handleErrorApi({
         error,
         setError: form.setError,
       });
     }
+  };
+
+  const reset = () => {
+    setId(undefined);
+    setFile(null);
   };
 
   useEffect(() => {
@@ -117,7 +122,7 @@ export default function EditEmployee({
       open={Boolean(id)}
       onOpenChange={(value) => {
         if (!value) {
-          setId(undefined);
+          reset();
         }
       }}
     >
