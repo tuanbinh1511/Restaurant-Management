@@ -71,6 +71,7 @@ export default function AddEmployee() {
         description: (await result).payload.message,
       });
       form.reset();
+      uploadImageMutation;
       setOpen(false);
     } catch (error) {
       handleErrorApi({

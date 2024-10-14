@@ -28,10 +28,17 @@ export const useGetAccountList = () => {
   });
 };
 
-export const useGetAccount = ({ id }: { id: number }) => {
+export const useGetAccount = ({
+  id,
+  enabled,
+}: {
+  id: number;
+  enabled: boolean;
+}) => {
   return useQuery({
     queryKey: ["accounts", id],
     queryFn: () => accountApiRequest.getEmployee(id),
+    enabled: enabled,
   });
 };
 export const useAddAccountMutation = () => {
@@ -59,6 +66,7 @@ export const useUpdateAccountMutation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["accounts"],
+        exact: true,
       });
     },
   });
