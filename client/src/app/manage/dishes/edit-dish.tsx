@@ -1,5 +1,4 @@
 "use client";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,24 +8,39 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { toast } from "@/hooks/use-toast";
-import { handleErrorApi } from "@/lib/utils";
-import { useGetAccount, useUpdateAccountMutation } from "@/queries/useAccount";
-import { useUploadImageMutation } from "@/queries/useMedia";
-import {
-  UpdateEmployeeAccountBody,
-  UpdateEmployeeAccountBodyType,
-} from "@/schemaValidations/account.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Upload } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getVietnameseDishStatus, handleErrorApi } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  UpdateDishBody,
+  UpdateDishBodyType,
+} from "@/schemaValidations/dish.schema";
+import { Textarea } from "@/components/ui/textarea";
+import { useGetDishQuery, useUpdateDishMutation } from "@/queries/useDish";
+import { toast } from "@/hooks/use-toast";
+import { useUploadImageMutation } from "@/queries/useMedia";
+import { DishStatus, DishStatusValues } from "@/constant/type";
 
-export default function EditEmployee({
+export default function EditDish({
   id,
   setId,
   onSubmitSuccess,
@@ -36,60 +50,67 @@ export default function EditEmployee({
   onSubmitSuccess?: () => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
-  const avatarInputRef = useRef<HTMLInputElement | null>(null);
-
-  const accountQuery = useGetAccount({
-    id: id as number,
-    enabled: Boolean(id),
-  });
-
-  const updateAccountMutation = useUpdateAccountMutation();
-  const uploadImageMutation = useUploadImageMutation();
-
-  const data = accountQuery.data?.payload.data;
-  const form = useForm<UpdateEmployeeAccountBodyType>({
-    resolver: zodResolver(UpdateEmployeeAccountBody),
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadMediaMutation = useUploadImageMutation();
+  const updateDishMutation = useUpdateDishMutation();
+  const { data } = useGetDishQuery({ enabled: Boolean(id), id: id as number });
+  const form = useForm<UpdateDishBodyType>({
+    resolver: zodResolver(UpdateDishBody),
     defaultValues: {
       name: "",
-      email: "",
-      avatar: undefined,
-      password: undefined,
-      confirmPassword: undefined,
-      changePassword: false,
+      description: "",
+      price: 0,
+      image: undefined,
+      status: DishStatus.Unavailable,
     },
   });
-  const avatar = form.watch("avatar");
+  const image = form.watch("image");
   const name = form.watch("name");
-  const changePassword = form.watch("changePassword");
+
   const previewAvatarFromFile = useMemo(() => {
     if (file) {
       return URL.createObjectURL(file);
     }
-    return avatar;
-  }, [file, avatar]);
+    return image;
+  }, [file, image]);
 
-  const onSubmit = async (values: UpdateEmployeeAccountBodyType) => {
-    if (updateAccountMutation.isPending) return;
+  useEffect(() => {
+    if (data) {
+      const { name, image, description, price, status } = data.payload.data;
+      form.reset({
+        name,
+        image: image ?? undefined,
+        description,
+        price,
+        status,
+      });
+    }
+  }, [data, form]);
+  const onSubmit = async (values: UpdateDishBodyType) => {
+    if (updateDishMutation.isPending) return;
     try {
-      let body: UpdateEmployeeAccountBodyType & { id: number } = {
+      let body: UpdateDishBodyType & { id: number } = {
         id: id as number,
         ...values,
       };
       if (file) {
         const formData = new FormData();
         formData.append("file", file);
-        const resultUpload = uploadImageMutation.mutateAsync(formData);
+        const uploadImageResult = await uploadMediaMutation.mutateAsync(
+          formData
+        );
+        const imageUrl = uploadImageResult.payload.data;
         body = {
           ...body,
-          avatar: (await resultUpload).payload.data,
+          image: imageUrl,
         };
       }
-      const result = updateAccountMutation.mutateAsync(body);
+      const result = await updateDishMutation.mutateAsync(body);
       toast({
-        description: (await result).payload.message,
+        description: result.payload.message,
       });
-      onSubmitSuccess && onSubmitSuccess();
       reset();
+      onSubmitSuccess && onSubmitSuccess();
     } catch (error) {
       handleErrorApi({
         error,
@@ -103,21 +124,6 @@ export default function EditEmployee({
     setFile(null);
   };
 
-  useEffect(() => {
-    if (data) {
-      const { avatar, name, email } = data;
-      form.reset({
-        name,
-        avatar: avatar ?? undefined,
-        email,
-        changePassword: form.getValues("changePassword"),
-        password: form.getValues("password"),
-        confirmPassword: form.getValues("confirmPassword"),
-      });
-    }
-  }, [data, form]);
-  console.log("id", id);
-
   return (
     <Dialog
       open={Boolean(id)}
@@ -129,22 +135,22 @@ export default function EditEmployee({
     >
       <DialogContent className="sm:max-w-[600px] max-h-screen overflow-auto">
         <DialogHeader>
-          <DialogTitle>Cập nhật tài khoản</DialogTitle>
+          <DialogTitle>Cập nhật món ăn</DialogTitle>
           <DialogDescription>
-            Các trường tên, email, mật khẩu là bắt buộc
+            Các trường sau đây là bắ buộc: Tên, ảnh
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form
             noValidate
             className="grid auto-rows-max items-start gap-4 md:gap-8"
-            id="edit-employee-form"
-            onSubmit={form.handleSubmit(onSubmit)}
+            id="edit-dish-form"
+            onSubmit={form.handleSubmit(onSubmit, console.log)}
           >
             <div className="grid gap-4 py-4">
               <FormField
                 control={form.control}
-                name="avatar"
+                name="image"
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex gap-2 items-start justify-start">
@@ -157,7 +163,7 @@ export default function EditEmployee({
                       <input
                         type="file"
                         accept="image/*"
-                        ref={avatarInputRef}
+                        ref={imageInputRef}
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
@@ -172,7 +178,7 @@ export default function EditEmployee({
                       <button
                         className="flex aspect-square w-[100px] items-center justify-center rounded-md border border-dashed"
                         type="button"
-                        onClick={() => avatarInputRef.current?.click()}
+                        onClick={() => imageInputRef.current?.click()}
                       >
                         <Upload className="h-4 w-4 text-muted-foreground" />
                         <span className="sr-only">Upload</span>
@@ -188,7 +194,7 @@ export default function EditEmployee({
                 render={({ field }) => (
                   <FormItem>
                     <div className="grid grid-cols-4 items-center justify-items-start gap-4">
-                      <Label htmlFor="name">Tên</Label>
+                      <Label htmlFor="name">Tên món ăn</Label>
                       <div className="col-span-3 w-full space-y-2">
                         <Input id="name" className="w-full" {...field} />
                         <FormMessage />
@@ -199,13 +205,18 @@ export default function EditEmployee({
               />
               <FormField
                 control={form.control}
-                name="email"
+                name="price"
                 render={({ field }) => (
                   <FormItem>
                     <div className="grid grid-cols-4 items-center justify-items-start gap-4">
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="price">Giá</Label>
                       <div className="col-span-3 w-full space-y-2">
-                        <Input id="email" className="w-full" {...field} />
+                        <Input
+                          id="price"
+                          className="w-full"
+                          {...field}
+                          type="number"
+                        />
                         <FormMessage />
                       </div>
                     </div>
@@ -214,15 +225,16 @@ export default function EditEmployee({
               />
               <FormField
                 control={form.control}
-                name="changePassword"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
                     <div className="grid grid-cols-4 items-center justify-items-start gap-4">
-                      <Label htmlFor="email">Đổi mật khẩu</Label>
+                      <Label htmlFor="description">Mô tả sản phẩm</Label>
                       <div className="col-span-3 w-full space-y-2">
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
+                        <Textarea
+                          id="description"
+                          className="w-full"
+                          {...field}
                         />
                         <FormMessage />
                       </div>
@@ -230,57 +242,44 @@ export default function EditEmployee({
                   </FormItem>
                 )}
               />
-              {changePassword && (
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="grid grid-cols-4 items-center justify-items-start gap-4">
-                        <Label htmlFor="password">Mật khẩu mới</Label>
-                        <div className="col-span-3 w-full space-y-2">
-                          <Input
-                            id="password"
-                            className="w-full"
-                            type="password"
-                            {...field}
-                          />
-                          <FormMessage />
-                        </div>
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="grid grid-cols-4 items-center justify-items-start gap-4">
+                      <Label htmlFor="description">Trạng thái</Label>
+                      <div className="col-span-3 w-full space-y-2">
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Chọn trạng thái" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {DishStatusValues.map((status) => (
+                              <SelectItem key={status} value={status}>
+                                {getVietnameseDishStatus(status)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    </FormItem>
-                  )}
-                />
-              )}
-              {changePassword && (
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="grid grid-cols-4 items-center justify-items-start gap-4">
-                        <Label htmlFor="confirmPassword">
-                          Xác nhận mật khẩu mới
-                        </Label>
-                        <div className="col-span-3 w-full space-y-2">
-                          <Input
-                            id="confirmPassword"
-                            className="w-full"
-                            type="password"
-                            {...field}
-                          />
-                          <FormMessage />
-                        </div>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              )}
+
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
             </div>
           </form>
         </Form>
         <DialogFooter>
-          <Button type="submit" form="edit-employee-form">
+          <Button type="submit" form="edit-dish-form">
             Lưu
           </Button>
         </DialogFooter>

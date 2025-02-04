@@ -1,16 +1,17 @@
-import authApiRequest from "@/apiRequests/auth";
-import { toast } from "@/hooks/use-toast";
 import { EntityError } from "@/lib/http";
-import { clsx, type ClassValue } from "clsx";
+import { type ClassValue, clsx } from "clsx";
 import { UseFormSetError } from "react-hook-form";
 import { twMerge } from "tailwind-merge";
 import jwt from "jsonwebtoken";
-
-const isBrowser = typeof window !== "undefined";
+import authApiRequest from "@/apiRequests/auth";
+import envConfig from "@/config";
+import { DishStatus, TableStatus } from "@/constant/type";
+import { toast } from "@/hooks/use-toast";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
 /**
  * Xóa đi ký tự `/` đầu tiên của path
  */
@@ -44,25 +45,29 @@ export const handleErrorApi = ({
   }
 };
 
+const isBrowser = typeof window !== "undefined";
+
 export const getAccessTokenFromLocalStorage = () =>
   isBrowser ? localStorage.getItem("accessToken") : null;
+
 export const getRefreshTokenFromLocalStorage = () =>
   isBrowser ? localStorage.getItem("refreshToken") : null;
+export const setAccessTokenToLocalStorage = (value: string) =>
+  isBrowser && localStorage.setItem("accessToken", value);
 
-export const settAccessTokenToLocalStorage = (token: string) =>
-  isBrowser && localStorage.setItem("accessToken", token);
-export const setRefreshTokenToLocalStorage = (token: string) =>
-  isBrowser && localStorage.setItem("refreshToken", token);
-
+export const setRefreshTokenToLocalStorage = (value: string) =>
+  isBrowser && localStorage.setItem("refreshToken", value);
 export const removeTokensFromLocalStorage = () => {
   isBrowser && localStorage.removeItem("accessToken");
   isBrowser && localStorage.removeItem("refreshToken");
 };
-
-export const checkAndRefreshToken = async (param: {
+export const checkAndRefreshToken = async (param?: {
   onError?: () => void;
   onSuccess?: () => void;
 }) => {
+  // Không nên đưa logic lấy access và refresh token ra khỏi cái function `checkAndRefreshToken`
+  // Vì để mỗi lần mà checkAndRefreshToken() được gọi thì chúng ta se có một access và refresh token mới
+  // Tránh hiện tượng bug nó lấy access và refresh token cũ ở lần đầu rồi gọi cho các lần tiếp theo
   const accessToken = getAccessTokenFromLocalStorage();
   const refreshToken = getRefreshTokenFromLocalStorage();
   // Chưa đăng nhập thì cũng không cho chạy
@@ -78,8 +83,11 @@ export const checkAndRefreshToken = async (param: {
   // Thời điểm hết hạn của token là tính theo epoch time (s)
   // Còn khi các bạn dùng cú pháp new Date().getTime() thì nó sẽ trả về epoch time (ms)
   const now = Math.round(new Date().getTime() / 1000);
-  // trường hợp refresh token hết hạn thì không xử lý nữa
-  if (decodedRefreshToken.exp <= now) return;
+  // trường hợp refresh token hết hạn thì cho logout
+  if (decodedRefreshToken.exp <= now) {
+    removeTokensFromLocalStorage();
+    return param?.onError && param.onError();
+  }
   // Ví dụ access token của chúng ta có thời gian hết hạn là 10s
   // thì mình sẽ kiểm tra còn 1/3 thời gian (3s) thì mình sẽ cho refresh token lại
   // Thời gian còn lại sẽ tính dựa trên công thức: decodedAccessToken.exp - now
@@ -91,11 +99,56 @@ export const checkAndRefreshToken = async (param: {
     // Gọi API refresh token
     try {
       const res = await authApiRequest.refreshToken();
-      settAccessTokenToLocalStorage(res.payload.data.accessToken);
+      setAccessTokenToLocalStorage(res.payload.data.accessToken);
       setRefreshTokenToLocalStorage(res.payload.data.refreshToken);
       param?.onSuccess && param.onSuccess();
     } catch (error) {
       param?.onError && param.onError();
     }
   }
+};
+
+export const formatCurrency = (number: number) => {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(number);
+};
+
+export const getVietnameseDishStatus = (
+  status: (typeof DishStatus)[keyof typeof DishStatus]
+) => {
+  switch (status) {
+    case DishStatus.Available:
+      return "Có sẵn";
+    case DishStatus.Unavailable:
+      return "Không có sẵn";
+    default:
+      return "Ẩn";
+  }
+};
+
+export const getVietnameseTableStatus = (
+  status: (typeof TableStatus)[keyof typeof TableStatus]
+) => {
+  switch (status) {
+    case TableStatus.Available:
+      return "Có sẵn";
+    case TableStatus.Reserved:
+      return "Đã đặt";
+    default:
+      return "Ẩn";
+  }
+};
+
+export const getTableLink = ({
+  token,
+  tableNumber,
+}: {
+  token: string;
+  tableNumber: number;
+}) => {
+  return (
+    envConfig.NEXT_PUBLIC_URL + "/tables/" + tableNumber + "?token=" + token
+  );
 };
